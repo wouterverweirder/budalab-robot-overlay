@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overlay Test</title>
+  <style>
+    @font-face {
+      font-family: 'Roboto Condensed';
+      src: url('assets/fonts/RobotoCondensed-Bold.woff2') format('woff2');
+      font-weight: bold;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Roboto Condensed';
+      src: url('assets/fonts/RobotoCondensed-Light.woff2') format('woff2');
+      font-weight: 300;
+      font-style: normal;
+    }
+  </style>
+</head>
+<body>
+  <p>
+    <span style="font-family: 'Roboto Condensed'; font-weight: bold;">Roboto Condensed Bold</span>
+    <span style="font-family: 'Roboto Condensed'; font-weight: 300;">Roboto Condensed Light</span>
+  </p>
+  <canvas id="canvas" width="1280" height="720"></canvas>
+  <script>
+
+    const $canvas = document.getElementById('canvas');
+    const ctx = $canvas.getContext('2d');
+    const width = 1280;
+    const height = 720;
+    const COLORS = {
+      YELLOW: '#F8CC46'
+    };
+    const DEG_TO_RAD = Math.PI / 180;
+
+    let testBeeldImg, templateImg;
+
+    const data = {
+      verplaatsingSecondsLeft: 0,
+      verplaatsingSecondsTotal: 15,
+      co2Min: 200,
+      co2Max: 700,
+      co2Current: 500,
+      luchtvochtigheidMin: 0,
+      luchtvochtigheidMax: 100,
+      luchtvochtigheidCurrent: 40,
+      luchtdrukMin: 900,
+      luchtdrukMax: 1100,
+      luchtdrukCurrent: 1009
+    };
+
+    const init = async () => {
+      testBeeldImg = await loadImage('assets/testbeeld.jpg');
+      templateImg = await loadImage('assets/template.png');
+
+      setInterval(() => {
+        data.verplaatsingSecondsLeft--;
+        if (data.verplaatsingSecondsLeft < 0) {
+          data.verplaatsingSecondsLeft = data.verplaatsingSecondsTotal;
+        }
+
+        data.co2Current = Math.floor(map(Math.random(), 0, 1, 450, 550));
+        data.luchtvochtigheidCurrent = Math.floor(map(Math.random(), 0, 1, 35, 45));
+        data.luchtdrukCurrent = Math.floor(map(Math.random(), 0, 1, 1000, 1015));
+
+        draw();
+      }, 1000);
+      draw();
+    };
+
+    const loadImage = (src) => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.addEventListener("load", () => resolve(img));
+        img.addEventListener("error", err => reject(err));
+        img.src = src;
+      });
+    };
+
+    const map = (value, x1, y1, x2, y2) => (value - x1) * (y2 - x2) / (y1 - x1) + x2;
+
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.drawImage(testBeeldImg, 0, 0);
+      ctx.drawImage(templateImg, 0, 0);
+
+      drawVerplaatsing(data.verplaatsingSecondsLeft, data.verplaatsingSecondsTotal);
+      drawCO2(data.co2Current, data.co2Min, data.co2Max);
+      drawLuchtvochtigheid(data.luchtvochtigheidCurrent, data.luchtvochtigheidMin, data.luchtvochtigheidMax);
+      drawLuchtdruk(data.luchtdrukCurrent, data.luchtdrukMin, data.luchtdrukMax);
+    };
+
+    const drawVerplaatsing = (secondsLeft, totalSeconds) => {
+      ctx.save();
+      ctx.font = '300 12px Roboto Condensed';
+      ctx.fillStyle = 'white';
+      ctx.fillText("VOLGENDE VERPLAATSING", 240, 625);
+
+      ctx.font = 'bold 20px Roboto Condensed';
+      ctx.fillStyle = COLORS.YELLOW;
+      ctx.fillText(`${secondsLeft}s`, 240, 650);
+
+      // rectangles
+      ctx.fillStyle = COLORS.YELLOW;
+      ctx.shadowColor = COLORS.YELLOW;
+      ctx.shadowBlur = 3;
+
+      const numBlocksFull = 15;
+      const offsetX = 240;
+      const numBlocksToDraw = numBlocksFull - Math.floor((secondsLeft / totalSeconds) * numBlocksFull)
+
+      for(let i = 0; i < numBlocksToDraw; i++) {
+        ctx.fillRect(offsetX + i * 9, 665, 7, 13);
+      }
+
+      ctx.restore();
+    };
+
+    const drawCO2 = (value, min, max) => {
+      drawDonut(907, 619, map(value, min, max, 0, 360));
+
+      ctx.save();
+      ctx.font = 'bold 14px Roboto Condensed';
+      ctx.fillStyle = 'white';
+      ctx.fillText(`${value}PPM`, 884, 680);
+      ctx.restore();
+    };
+
+    const drawLuchtvochtigheid = (value, min, max) => {
+      drawDonut(1019, 619, map(value, min, max, 0, 360));
+
+      ctx.save();
+      ctx.font = 'bold 14px Roboto Condensed';
+      ctx.fillStyle = 'white';
+      ctx.fillText(`${value}%`, 1010, 680);
+      ctx.restore();
+    };
+
+    const drawLuchtdruk = (value, min, max) => {
+      drawDonut(1130, 619, map(value, min, max, 0, 360));
+
+      ctx.save();
+      ctx.font = 'bold 14px Roboto Condensed';
+      ctx.fillStyle = 'white';
+      ctx.fillText(`${value}kPa`, 1104, 680);
+      ctx.restore();
+    };
+
+    const drawDonut = (offsetX, offsetY, valueAngleDeg) => {
+      ctx.save();
+
+      const radius = 41;
+      const donutWidth = 10;
+      const innerRadius = radius - donutWidth;
+
+      let currentAngleDeg = 0;
+      let currentAngleRad = Math.PI * 1.5 - currentAngleDeg * DEG_TO_RAD;
+      ctx.beginPath();
+      ctx.moveTo(offsetX + (Math.cos(currentAngleRad) * radius), offsetY + (Math.sin(currentAngleRad) * radius));
+      for (currentAngleDeg = 0; currentAngleDeg < valueAngleDeg; currentAngleDeg++) {
+        currentAngleRad = Math.PI * 1.5 - currentAngleDeg * DEG_TO_RAD;
+        ctx.lineTo(offsetX + (Math.cos(currentAngleRad) * radius), offsetY + (Math.sin(currentAngleRad) * radius));
+      }
+      for (currentAngleDeg--; currentAngleDeg >= 0; currentAngleDeg--) {
+        currentAngleRad = Math.PI * 1.5 - currentAngleDeg * DEG_TO_RAD;
+        ctx.lineTo(offsetX + (Math.cos(currentAngleRad) * innerRadius), offsetY + (Math.sin(currentAngleRad) * innerRadius));
+      }
+
+      ctx.closePath();
+      ctx.fillStyle = COLORS.YELLOW;
+      ctx.shadowColor = COLORS.YELLOW;
+      ctx.shadowBlur = 3;
+      ctx.fill();
+
+      ctx.restore();
+    };
+
+    init();
+  </script>
+</body>
+</html>
