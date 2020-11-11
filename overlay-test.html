@@ -33,13 +33,17 @@
     const width = 1280;
     const height = 720;
     const COLORS = {
-      YELLOW: '#F8CC46'
+      YELLOW: '#F8CC46',
+      BLUE: '#18112B'
     };
     const DEG_TO_RAD = Math.PI / 180;
 
     let testBeeldImg, templateImg;
     const batteryImg = [];
     const wifiImg = [];
+    const arrowLeftImg = [];
+    const arrowRightImg = [];
+    const arrowUpImg = [];
 
     const data = {
       batterijMin: 0,
@@ -61,7 +65,10 @@
       luchtdrukCurrent: 1009,
       temperatuurMin: 10,
       temperatuurMax: 50,
-      temperatuurCurrent: 25
+      temperatuurCurrent: 25,
+      votesLeft: 10,
+      votesRight: 17,
+      votesUp: 14
     };
 
     const init = async () => {
@@ -77,12 +84,22 @@
       wifiImg.push(await loadImage('assets/icon-wifi50.png'));
       wifiImg.push(await loadImage('assets/icon-wifi75.png'));
       wifiImg.push(await loadImage('assets/icon-wifi100.png'));
+      arrowLeftImg.push(await loadImage('assets/arrowleft.png'));
+      arrowLeftImg.push(await loadImage('assets/arrowleft-select.png'));
+      arrowRightImg.push(await loadImage('assets/arrowright.png'));
+      arrowRightImg.push(await loadImage('assets/arrowright-select.png'));
+      arrowUpImg.push(await loadImage('assets/arrowup.png'));
+      arrowUpImg.push(await loadImage('assets/arrowup-select.png'));
 
       setInterval(() => {
         data.verplaatsingSecondsLeft--;
         if (data.verplaatsingSecondsLeft < 0) {
           data.verplaatsingSecondsLeft = data.verplaatsingSecondsTotal;
         }
+
+        data.votesLeft = Math.floor(map(Math.random(), 0, 1, 0, 50));
+        data.votesRight = Math.floor(map(Math.random(), 0, 1, 0, 50));
+        data.votesUp = Math.floor(map(Math.random(), 0, 1, 0, 50));
 
         data.batterijCurrent-=10;
         if (data.batterijCurrent < 0) {
@@ -112,7 +129,7 @@
       });
     };
 
-    const map = (value, x1, y1, x2, y2) => (value - x1) * (y2 - x2) / (y1 - x1) + x2;
+    const map = (value, x1, y1, x2, y2) => Math.max(x2, Math.min(y2, (value - x1) * (y2 - x2) / (y1 - x1) + x2));
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
@@ -120,6 +137,7 @@
       ctx.drawImage(testBeeldImg, 0, 0);
       ctx.drawImage(templateImg, 0, 0);
 
+      drawVotes(data.votesLeft, data.votesRight, data.votesUp);
       drawBatterij(data.batterijCurrent, data.batterijMin, data.batterijMax);
       drawWifi(data.wifiCurrent, data.wifiMin, data.wifiMax);
       drawVerplaatsing(data.verplaatsingSecondsLeft, data.verplaatsingSecondsTotal);
@@ -127,6 +145,46 @@
       drawLuchtvochtigheid(data.luchtvochtigheidCurrent, data.luchtvochtigheidMin, data.luchtvochtigheidMax);
       drawLuchtdruk(data.luchtdrukCurrent, data.luchtdrukMin, data.luchtdrukMax);
       drawTemperatuur(data.temperatuurCurrent, data.temperatuurMin, data.temperatuurMax);
+    };
+
+    const drawVotes = (left, right, up) => {
+      let direction = 'up';
+      const sorted = [left, right, up].sort().reverse();
+    
+      if (up === sorted[0]) {
+        direction = 'up';
+      } else if (left === sorted[0]) {
+        direction = 'left';
+      } else if (right === sorted[0]) {
+        direction = 'right';
+      }
+
+      const leftImg = (direction === 'left') ? arrowLeftImg[1] : arrowLeftImg[0];
+      const rightImg = (direction === 'right') ? arrowRightImg[1] : arrowRightImg[0];
+      const upImg = (direction === 'up') ? arrowUpImg[1] : arrowUpImg[0];
+
+      ctx.save();
+      const offset = 31;
+      ctx.drawImage(leftImg, 428, 642);
+      ctx.drawImage(upImg, 476, 620);
+      ctx.drawImage(rightImg, 523, 642);
+
+      let textSize;
+
+      ctx.font = 'bold 12px Roboto Condensed';
+      ctx.fillStyle = (direction === 'left') ? COLORS.BLUE : 'white';
+      textSize = ctx.measureText(`${left}`);
+      ctx.fillText(`${left}`, 449 - textSize.width / 2, 675);
+
+      ctx.fillStyle = (direction === 'right') ? COLORS.BLUE : 'white';
+      textSize = ctx.measureText(`${right}`);
+      ctx.fillText(`${right}`, 544 - textSize.width / 2, 675);
+
+      ctx.fillStyle = (direction === 'up') ? COLORS.BLUE : 'white';
+      textSize = ctx.measureText(`${up}`);
+      ctx.fillText(`${up}`, 497 - textSize.width / 2, 653);
+
+      ctx.restore();
     };
 
     const drawBatterij = (value, min, max) => {
@@ -190,7 +248,8 @@
       ctx.save();
       ctx.font = 'bold 14px Roboto Condensed';
       ctx.fillStyle = 'white';
-      ctx.fillText(`${value}PPM`, 884, 675);
+      const textSize = ctx.measureText(`${value}PPM`);
+      ctx.fillText(`${value}PPM`, 932 - textSize.width, 675);
       ctx.restore();
     };
 
@@ -200,7 +259,8 @@
       ctx.save();
       ctx.font = 'bold 14px Roboto Condensed';
       ctx.fillStyle = 'white';
-      ctx.fillText(`${value}%`, 1010, 675);
+      const textSize = ctx.measureText(`${value}%`);
+      ctx.fillText(`${value}%`, 1032 - textSize.width, 675);
       ctx.restore();
     };
 
@@ -210,7 +270,8 @@
       ctx.save();
       ctx.font = 'bold 14px Roboto Condensed';
       ctx.fillStyle = 'white';
-      ctx.fillText(`${value}kPa`, 1104, 675);
+      const textSize = ctx.measureText(`${value}kPa`);
+      ctx.fillText(`${value}kPa`, 1153 - textSize.width, 675);
       ctx.restore();
     };
 
@@ -218,6 +279,12 @@
       const numBlokjes = Math.floor(map(value, min, max, 0, 8));
 
       ctx.save();
+
+      ctx.font = 'bold 14px Roboto Condensed';
+      ctx.fillStyle = 'white';
+      const textSize = ctx.measureText(`${value}°C`);
+      ctx.fillText(`${value}°C`, 1222 - textSize.width / 2, 675);
+
       ctx.fillStyle = COLORS.YELLOW;
       ctx.shadowColor = COLORS.YELLOW;
       ctx.shadowBlur = 3;
@@ -227,6 +294,7 @@
       for(let i = 0; i < numBlokjes; i++) {
         ctx.fillRect(offsetX, offsetY - (i * 8), 12, 6);
       }
+
       ctx.restore();
     };
 
