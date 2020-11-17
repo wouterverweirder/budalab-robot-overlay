@@ -1,4 +1,6 @@
 const fs = require('fs');
+const dgram = require('dgram');
+const server = dgram.createSocket('udp4');
 const { registerFont, createCanvas, loadImage } = require('canvas');
 
 registerFont('assets/fonts/RobotoCondensed-Bold.ttf', { family: 'Roboto Condensed', weight: 'bold' });
@@ -23,30 +25,47 @@ const arrowRightImg = [];
 const arrowUpImg = [];
 
 const data = {
-  batterijMin: 0,
-  batterijMax: 100,
-  batterijCurrent: 50,
-  wifiMin: 0,
-  wifiMax: 100,
-  wifiCurrent: 50,
-  verplaatsingSecondsLeft: 0,
-  verplaatsingSecondsTotal: 15,
-  co2Min: 200,
-  co2Max: 700,
-  co2Current: 500,
-  luchtvochtigheidMin: 0,
-  luchtvochtigheidMax: 100,
-  luchtvochtigheidCurrent: 40,
-  luchtdrukMin: 900,
-  luchtdrukMax: 1100,
-  luchtdrukCurrent: 1009,
-  temperatuurMin: 10,
-  temperatuurMax: 50,
-  temperatuurCurrent: 25,
-  votesLeft: 10,
-  votesRight: 17,
-  votesUp: 14
+  "Sensors": {
+    "Pressure":{"Min": 800, "Max": 1500, "Value": 1200},
+    "Temperature":{"Min": 5, "Max": 30, "Value": 14},
+    "Humidity":{"Min": 0, "Max": 100, "Value": 40},
+    "CO2":{"Min": 200, "Max": 3000, "Value": 800},
+    "Battery":{"Min": 0, "Max": 100, "Value": 80},
+    "RSSI":{"Min": 0, "Max": 100, "Value": 80}
+  },
+  "RoverInput":{
+    "TotalVotingTime": 20,
+    "RemainingVotingTime": 5,
+    "VotesLeft": 1,
+    "VotesRight": 2,
+    "VotesForward": 3
+  },
 };
+
+server.on('message', (msg, rinfo) => {
+  try {
+    const receivedData = JSON.parse(msg);
+    if (receivedData.Sensors) {
+      if (receivedData.Sensors.Pressure) data.Sensors.Pressure = {...receivedData.Sensors.Pressure};
+      if (receivedData.Sensors.Temperature) data.Sensors.Temperature = {...receivedData.Sensors.Temperature};
+      if (receivedData.Sensors.Humidity) data.Sensors.Humidity = {...receivedData.Sensors.Humidity};
+      if (receivedData.Sensors.CO2) data.Sensors.CO2 = {...receivedData.Sensors.CO2};
+      if (receivedData.Sensors.Battery) data.Sensors.Battery = {...receivedData.Sensors.Battery};
+      if (receivedData.Sensors.RSSI) data.Sensors.RSSI = {...receivedData.Sensors.RSSI};
+    }
+    if (receivedData.RoverInput) {
+      if (receivedData.RoverInput.TotalVotingTime) data.RoverInput.TotalVotingTime = receivedData.RoverInput.TotalVotingTime;
+      if (receivedData.RoverInput.RemainingVotingTime) data.RoverInput.RemainingVotingTime = receivedData.RoverInput.RemainingVotingTime;
+      if (receivedData.RoverInput.VotesLeft) data.RoverInput.VotesLeft = receivedData.RoverInput.VotesLeft;
+      if (receivedData.RoverInput.VotesRight) data.RoverInput.VotesRight = receivedData.RoverInput.VotesRight;
+      if (receivedData.RoverInput.VotesForward) data.RoverInput.VotesForward = receivedData.RoverInput.VotesForward;
+    }
+  } catch (e) {
+    console.log(`decode failed: ${msg} from ${rinfo.address}:${rinfo.port}`);
+    console.log(e);
+  }
+});
+server.bind(41234);
 
 const init = async () => {
   // testBeeldImg = await loadImage('assets/testbeeld.jpg');
@@ -69,28 +88,28 @@ const init = async () => {
   arrowUpImg.push(await loadImage('assets/arrowup-select.png'));
 
   const updateFrame = () => {
-    data.verplaatsingSecondsLeft--;
-    if (data.verplaatsingSecondsLeft < 0) {
-      data.verplaatsingSecondsLeft = data.verplaatsingSecondsTotal;
-    }
+    // data.RoverInput.RemainingVotingTime--;
+    // if (data.RoverInput.RemainingVotingTime < 0) {
+    //   data.RoverInput.RemainingVotingTime = data.RoverInput.TotalVotingTime;
+    // }
 
-    data.votesLeft = Math.floor(map(Math.random(), 0, 1, 0, 50));
-    data.votesRight = Math.floor(map(Math.random(), 0, 1, 0, 50));
-    data.votesUp = Math.floor(map(Math.random(), 0, 1, 0, 50));
+    // data.RoverInput.VotesLeft = Math.floor(map(Math.random(), 0, 1, 0, 50));
+    // data.RoverInput.VotesRight = Math.floor(map(Math.random(), 0, 1, 0, 50));
+    // data.RoverInput.VotesForward = Math.floor(map(Math.random(), 0, 1, 0, 50));
 
-    data.batterijCurrent-=10;
-    if (data.batterijCurrent < 0) {
-      data.batterijCurrent = data.batterijMax;
-    }
-    data.wifiCurrent-=10;
-    if (data.wifiCurrent < 0) {
-      data.wifiCurrent = data.wifiMax;
-    }
+    // data.Sensors.Battery.Value-=10;
+    // if (data.Sensors.Battery.Value < 0) {
+    //   data.Sensors.Battery.Value = data.Sensors.Battery.Max;
+    // }
+    // data.Sensors.RSSI.Value-=10;
+    // if (data.Sensors.RSSI.Value < 0) {
+    //   data.Sensors.RSSI.Value = data.Sensors.RSSI.Max;
+    // }
 
-    data.co2Current = Math.floor(map(Math.random(), 0, 1, 450, 550));
-    data.luchtvochtigheidCurrent = Math.floor(map(Math.random(), 0, 1, 35, 45));
-    data.luchtdrukCurrent = Math.floor(map(Math.random(), 0, 1, 1000, 1015));
-    data.temperatuurCurrent = Math.floor(map(Math.random(), 0, 1, data.temperatuurMin, data.temperatuurMax));
+    // data.Sensors.CO2.Value = Math.floor(map(Math.random(), 0, 1, 450, 550));
+    // data.Sensors.Humidity.Value = Math.floor(map(Math.random(), 0, 1, 35, 45));
+    // data.Sensors.Pressure.Value = Math.floor(map(Math.random(), 0, 1, 1000, 1015));
+    // data.Sensors.Temperature.Value = Math.floor(map(Math.random(), 0, 1, data.temperatuurMin, data.temperatuurMax));
 
     draw();
 
@@ -111,14 +130,14 @@ const draw = () => {
   // ctx.drawImage(testBeeldImg, 0, 0);
   ctx.drawImage(templateImg, 0, 0);
 
-  drawVotes(data.votesLeft, data.votesRight, data.votesUp);
-  drawBatterij(data.batterijCurrent, data.batterijMin, data.batterijMax);
-  drawWifi(data.wifiCurrent, data.wifiMin, data.wifiMax);
-  drawVerplaatsing(data.verplaatsingSecondsLeft, data.verplaatsingSecondsTotal);
-  drawCO2(data.co2Current, data.co2Min, data.co2Max);
-  drawLuchtvochtigheid(data.luchtvochtigheidCurrent, data.luchtvochtigheidMin, data.luchtvochtigheidMax);
-  drawLuchtdruk(data.luchtdrukCurrent, data.luchtdrukMin, data.luchtdrukMax);
-  drawTemperatuur(data.temperatuurCurrent, data.temperatuurMin, data.temperatuurMax);
+  drawVotes(data.RoverInput.VotesLeft, data.RoverInput.VotesRight, data.RoverInput.VotesForward);
+  drawBatterij(data.Sensors.Battery.Value, data.Sensors.Battery.Min, data.Sensors.Battery.Max);
+  drawWifi(data.Sensors.RSSI.Value, data.Sensors.RSSI.Min, data.Sensors.RSSI.Max);
+  drawVerplaatsing(data.RoverInput.RemainingVotingTime, data.RoverInput.TotalVotingTime);
+  drawCO2(data.Sensors.CO2.Value, data.Sensors.CO2.Min, data.Sensors.CO2.Max);
+  drawLuchtvochtigheid(data.Sensors.Humidity.Value, data.Sensors.Humidity.Min, data.Sensors.Humidity.Max);
+  drawLuchtdruk(data.Sensors.Pressure.Value, data.Sensors.Pressure.Min, data.Sensors.Pressure.Max);
+  drawTemperatuur(data.Sensors.Temperature.Value, data.Sensors.Temperature.Min, data.Sensors.Temperature.Max);
 };
 
 const drawVotes = (left, right, up) => {
